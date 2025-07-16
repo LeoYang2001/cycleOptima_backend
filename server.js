@@ -4,6 +4,7 @@ const socketIo = require("socket.io");
 const cors = require("cors");
 const dotenv = require("dotenv");
 const washerRoutes = require("./routes/washerRoutes");
+const libraryRoutes = require("./routes/libraryRoutes");
 
 dotenv.config();
 
@@ -18,6 +19,7 @@ app.use(express.json());
 app.set("io", io);
 
 app.use("/api/washer-cycles", washerRoutes);
+app.use("/api/library", libraryRoutes);
 
 const PORT = process.env.PORT || 4000;
 server.listen(PORT, () => {
