@@ -19,6 +19,15 @@ app.use(express.json());
 // Make io accessible in routes/controllers
 app.set("io", io);
 
+// Health check endpoint for Docker
+app.get("/health", (req, res) => {
+  res.status(200).json({
+    status: "OK",
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+  });
+});
+
 app.use("/api/washer-cycles", washerRoutes);
 app.use("/api/library", libraryRoutes);
 app.use("/api/config", configRoutes);
