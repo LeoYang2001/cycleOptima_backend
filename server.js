@@ -28,6 +28,9 @@ app.get("/health", (req, res) => {
   });
 });
 
+const espController = require("./controllers/espController");
+app.post("/api/esp/run-flash", espController.runFlash);
+
 app.use("/api/washer-cycles", washerRoutes);
 app.use("/api/library", libraryRoutes);
 app.use("/api/config", configRoutes);
