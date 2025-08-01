@@ -15,8 +15,6 @@ exports.getAllWasherCycles = async (req, res) => {
 exports.createWasherCycle = async (req, res) => {
   const { id, displayName, engineer_note, data } = req.body;
 
-  console.log(JSON.stringify(engineer_note, null, 2));
-  console.log("data:", JSON.stringify(data, null, 2));
   const text = `${displayName ?? ""} ${engineer_note ?? ""}`;
   console.log("embedding text:", text);
   try {
@@ -140,3 +138,6 @@ exports.upsertWasherCycle = async (req, res) => {
     res.status(500).json({ error: err.message || "Operation failed" });
   }
 };
+
+
+
