@@ -1,5 +1,28 @@
-// controllers/espController.js
 const db = require("../db/db");
+
+// Update cycle status to 'tested' and set tested_at, then emit 'cycle_updated'
+async function updateCycleTested(cycleId, req) {
+  console.log(
+    `Updating cycle ${cycleId} status to 'tested' at ${new Date().toISOString()}`
+  );
+  try {
+    const testedAt = new Date();
+    const sql = `
+      UPDATE washer_cycles
+      SET status = ?, tested_at = ?
+      WHERE id = ?
+    `;
+    await db.query(sql, ["tested", testedAt, cycleId]);
+    if (req && req.app && req.app.get && req.app.get("io")) {
+      req.app.get("io").emit("cycle_updated");
+    }
+    return { success: true };
+  } catch (err) {
+    console.error("Error updating cycle tested status:", err);
+    return { success: false, error: err.message };
+  }
+}
+// controllers/espController.js
 
 exports.runFlash = async (req, res) => {
   const { cycleId } = req.body;
@@ -14,11 +37,22 @@ exports.runFlash = async (req, res) => {
         .json({ error: `No cycle found with id: ${cycleId}` });
     }
 
-    const flashResult = await flashCycleToESP(results[0]);
-    res.json({
-      message: `hello, ${cycleId}`,
-      cycle: results[0],
-      flashResult,
+    const overwriteResult = await overwriteSpiff(results[0]);
+    let flashResult = null;
+    if (overwriteResult.success) {
+      flashResult = await flashCycleToESP();
+    }
+
+    updateCycleTested(cycleId, req).then((updateResult) => {
+      if (!updateResult.success) {
+        return res.status(500).json({ error: "Failed to update cycle status" });
+      }
+      res.json({
+        message: `hello, ${cycleId}`,
+        cycle: results[0],
+        overwriteResult,
+        flashResult,
+      });
     });
   } catch (err) {
     console.error("Error fetching washer cycle by id:", err);
@@ -26,18 +60,30 @@ exports.runFlash = async (req, res) => {
   }
 };
 
-async function flashCycleToESP(cycle) {
-  const payload = { app: cycle.data }; // wrap cycle data in 'app'
+const localAgentUrl = "https://f320e6581a69.ngrok-free.app";
+
+async function overwriteSpiff(cycle) {
+  // Send the new JSON directly (no need to wrap in { app: ... } unless your API expects it)
   try {
-    console.log("Flashing cycle to ESP:", payload);
-    const response = await fetch(
-      "https://278b8f56fca2.ngrok-free.app/api/flash",
-      {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload, null, 2),
-      }
-    );
+    const response = await fetch(`${localAgentUrl}/api/input`, {
+      method: "PUT", // Use PUT, not POST
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(cycle.data, null, 2), // Send the new JSON content
+    });
+    const data = await response.json();
+    return { success: true, data };
+  } catch (err) {
+    console.error("Error overwriting Spiff:", err.message);
+    return { success: false, error: err.message };
+  }
+}
+
+async function flashCycleToESP() {
+  try {
+    console.log("Flashing cycle to ESP (no params)");
+    const response = await fetch(`${localAgentUrl}/api/flash`, {
+      method: "POST",
+    });
     const data = await response.json();
     return { success: true, data };
   } catch (err) {
