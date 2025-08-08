@@ -60,11 +60,15 @@ exports.runFlash = async (req, res) => {
   }
 };
 
-const localAgentUrl = "https://f320e6581a69.ngrok-free.app";
+const localAgentUrl = "https://0c2c45c81a02.ngrok-free.app";
 
 async function overwriteSpiff(cycle) {
   // Send the new JSON directly (no need to wrap in { app: ... } unless your API expects it)
   try {
+    console.log("Overwriting Spiff with cycle data:", cycle.data);
+    if (!cycle || !cycle.data) {
+      throw new Error("Invalid cycle data provided");
+    }
     const response = await fetch(`${localAgentUrl}/api/input`, {
       method: "PUT", // Use PUT, not POST
       headers: { "Content-Type": "application/json" },

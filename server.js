@@ -35,6 +35,36 @@ app.use("/api/washer-cycles", washerRoutes);
 app.use("/api/library", libraryRoutes);
 app.use("/api/config", configRoutes);
 
+//AI VOICE AGENT FEATURE
+app.post("/api/session", async (req, res) => {
+  try {
+    const response = await fetch(
+      "https://api.openai.com/v1/realtime/sessions",
+      {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "gpt-4o-realtime-preview-2025-06-03",
+        }),
+      }
+    );
+
+    const data = await response.json();
+
+    if (!data.client_secret?.value) {
+      throw new Error("No client_secret returned");
+    }
+
+    res.json({ clientSecret: data.client_secret.value });
+  } catch (err) {
+    console.error("Failed to create session:", err.message);
+    res.status(500).json({ error: "Failed to generate client secret" });
+  }
+});
+
 const PORT = process.env.PORT || 4000;
 const HOST = process.env.HOST || "0.0.0.0";
 
